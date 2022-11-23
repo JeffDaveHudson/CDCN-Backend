@@ -8,5 +8,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('book', views.BookManage.as_view()),
     path('book/<int:id>', views.BookManage.as_view()),
+    path('genre', views.GenreManage.as_view()),
 
 ]
