@@ -47,3 +47,18 @@ class BookManage(APIView):
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
+class GenreManage(APIView):
+    # permission_classes = [StaffAndUserPermission]
+    permission_classes = (AllowAny,)
+
+    def get(self, request, *args, **kwargs):
+        genre_model = models.Genre.objects
+        try:
+            if "id" in request.query_params:
+                genre_model.filter(
+                    id=request.query_params["id"])
+            serializer = GenreSerializer(genre_model, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            print(e)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
