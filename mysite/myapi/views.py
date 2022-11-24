@@ -49,6 +49,22 @@ class BookManage(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
+class UserRegisterView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        serializer = UserRegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.validated_data['password'] = hashers.make_password(
+                serializer.validated_data['password'])
+            user = serializer.save()
+
+            return Response('Register oke', status=status.HTTP_201_CREATED)
+
+        else:
+            return Response("Username has already exist", status=status.HTTP_400_BAD_REQUEST)
+
+
 class UserLoginView(APIView):
     permission_classes = (AllowAny,)
 
