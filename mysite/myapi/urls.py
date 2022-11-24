@@ -9,4 +9,6 @@ urlpatterns = [
     path('book', views.BookManage.as_view()),
     path('book/<int:id>', views.BookManage.as_view()),
 
+    path('rating', views.RatingManage.as_view()),
+    path('rating/<int:pk>', views.RatingManage.as_view()),
 ]

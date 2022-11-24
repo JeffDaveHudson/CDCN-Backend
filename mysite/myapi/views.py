@@ -47,3 +47,53 @@ class BookManage(APIView):
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class RatingManage(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+
+    def get(self, request, pk=None, format=None):
+        if pk:
+            rating_obj = models.Rating.objects.get(pk=pk)
+
+            serializer = RatingSerializer(rating_obj)
+        else:
+
+            queryset = models.Rating.objects.all()
+            serializer = RatingSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        data = request.data
+        serializer = RatingSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        item = get_object_or_404(models.Rating, pk=pk)
+        item.delete()
+        return Response({"status": "success", "data": "Item Deleted"})
+
+    def put(self, request, pk, format=None):
+        rating_obj = models.Rating.objects.get(pk=pk)
+        serializer = RatingSerializer(data=request.data, instance=rating_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, format=None):
+        rating_obj = models.Rating.objects.get(pk=pk)
+        serializer = RatingSerializer(
+            data=request.data, instance=rating_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
