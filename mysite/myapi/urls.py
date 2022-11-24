@@ -9,4 +9,5 @@ urlpatterns = [
     path('book', views.BookManage.as_view()),
     path('book/<int:id>', views.BookManage.as_view()),
 
+    path('api/register', views.UserRegisterView.as_view(), name='register'),
 ]
