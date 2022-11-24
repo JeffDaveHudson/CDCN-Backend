@@ -47,3 +47,36 @@ class BookManage(APIView):
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class UserLoginView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = authenticate(
+                request,
+                username=serializer.validated_data['username'],
+                password=serializer.validated_data['password']
+            )
+            if user:
+                refresh = TokenObtainPairSerializer.get_token(user)
+                data = {
+                    'refresh_token': str(refresh),
+                    'access_token': str(refresh.access_token),
+                    'access_expires': int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+                    'refresh_expires': int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()),
+                    'is_staff': user.is_staff,
+                    'id': user.id
+                }
+                return Response(data, status=status.HTTP_200_OK)
+
+            return Response({
+                'error_message': 'username or password is incorrect!',
+                'error_code': 400
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'error_messages': serializer.errors,
+            'error_code': 400
+        }, status=status.HTTP_400_BAD_REQUEST)
