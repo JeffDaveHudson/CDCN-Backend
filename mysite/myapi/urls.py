@@ -17,5 +17,7 @@ urlpatterns = [
 
     path('genre', views.GenreManage.as_view()),
 
-
+    #get rating by id rating
+    path('rating', views.RatingManage.as_view()),
+    path('rating/<int:pk>', views.RatingManage.as_view()),
 ]
