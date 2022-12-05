@@ -114,6 +114,29 @@ class GenreManage(APIView):
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+
+class Recommendation(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+
+    def get(self, request, user, *args, **kwargs):
+        data = pd.DataFrame(list(models.Rating.objects.all().values(
+            'user', 'book', 'rating').order_by('user', 'book')))
+        data = data.to_numpy()
+        rs = CF(data, 30, uuCF=1)
+        rs.fit()
+        list_item = rs.print_recommendation()
+
+        for item in list_item:
+            if item['_user'] == user:
+                list_book = item['_book']
+        result = []
+        for book_id in list_book:
+            queryset = models.Book.objects.get(id=book_id)
+            serializer = BookSerializer(queryset)
+            result.append(serializer.data)
+        return Response(result)
+
 class RatingManage(APIView):
     # permission_classes = [IsAuthenticated]
     permission_classes = (AllowAny,)
@@ -173,3 +196,4 @@ class AverageRating(APIView):
         obj = models.Rating.objects.filter(book=kwargs['book']).values(
             'book').annotate(avg_rating=Avg('rating'), rating_count=Count('user'))
         return Response(obj)
+
