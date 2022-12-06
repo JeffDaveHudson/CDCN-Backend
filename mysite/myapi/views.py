@@ -257,3 +257,22 @@ class UserManage(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request, pk, format=None):
+        user_obj = models.User.objects.get(pk=pk)
+        serializer = UserSerializer(data=request.data, instance=user_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, format=None):
+        user_obj = models.User.objects.get(pk=pk)
+        serializer = UserSerializer(
+            data=request.data, instance=user_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
