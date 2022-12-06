@@ -295,3 +295,22 @@ class RatingByUser_Book(APIView):
         item = get_object_or_404(models.Rating, user=user)
         item.delete()
         return Response({"status": "success", "data": "Item Deleted"})
+
+    def put(self, request, user, format=None):
+        rating_obj = models.Rating.objects.get(user=user)
+        serializer = RatingSerializer(data=request.data, instance=rating_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, user, book, format=None):
+        rating_obj = models.Rating.objects.get(user=user, book=book)
+        serializer = RatingSerializer(
+            data=request.data, instance=rating_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
