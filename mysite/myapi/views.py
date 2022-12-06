@@ -290,3 +290,8 @@ class RatingByUser_Book(APIView):
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
         except Exception:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, user, format=None):
+        item = get_object_or_404(models.Rating, user=user)
+        item.delete()
+        return Response({"status": "success", "data": "Item Deleted"})
