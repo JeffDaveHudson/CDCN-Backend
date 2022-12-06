@@ -48,20 +48,7 @@ class BookManage(APIView):
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
     
-    def post(self, request):
-        try:
-            data = request.data
-            new_book = models.Book.objects.create(
-                title=data["title"], photourl=data["photourl"])
-            new_book.save()
-            for genre in data["genres"]:
-                genre_obj = models.Genre.objects.get(id=genre["id"])
-                new_book.genre.add(genre_obj)
-
-            serializer = BookSerializer(new_book)
-            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"status": "error"}, status=status.HTTP_400_BAD_REQUEST)
+   
 
 
 
