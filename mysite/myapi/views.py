@@ -276,3 +276,17 @@ class UserManage(APIView):
             return Response({"Message": "Data updated successfully !!"})
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RatingByUser_Book(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            queryset = models.Rating.objects.filter(
+                user=kwargs['user'], book=kwargs['book'])
+            serializer = RatingSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        except Exception:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
