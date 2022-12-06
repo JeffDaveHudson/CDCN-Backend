@@ -20,6 +20,7 @@ import math
 from myapi import serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from myapi.permissions import StaffAndUserPermission
+from myapi.recommendation import CF
 import pandas as pd
 
 class BookManage(APIView):
