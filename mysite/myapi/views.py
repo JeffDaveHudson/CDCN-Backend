@@ -68,6 +68,24 @@ class BookManage(APIView):
         item.delete()
         return Response({"status": "success", "data": "Item Deleted"})
 
+    def patch(self, request, id=None):
+        try:
+            item = models.Book.objects.get(id=id)
+            item.title = request.data["title"]
+            item.photourl = request.data["photourl"]
+            item.save(update_fields=["title", "photourl"])
+
+            item.genre.clear()
+            for genre in request.data["genres"]:
+                genre_obj = models.Genre.objects.get(id=genre["id"])
+                item.genre.add(genre_obj)
+
+            serializer = BookSerializer(item)
+            return Response({"status": "success", "data": serializer.data})
+        except Exception as e:
+            return Response({"status": "error", "data": "error while updating"})
+
+
 class UserRegisterView(APIView):
     permission_classes = (AllowAny,)
 
