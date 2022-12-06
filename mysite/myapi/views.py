@@ -234,3 +234,17 @@ class AverageRating(APIView):
             'book').annotate(avg_rating=Avg('rating'), rating_count=Count('user'))
         return Response(obj)
 
+class UserManage(APIView):
+    # permission_classes = [StaffAndUserPermission]
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
+
+    def get(self, request, pk=None, format=None):
+        if pk:
+            user_obj = models.User.objects.get(pk=pk)
+            serializer = UserSerializer(user_obj)
+        else:
+            queryset = models.User.objects.all()
+            serializer = UserSerializer(queryset, many=True)
+
+        return Response(serializer.data)
