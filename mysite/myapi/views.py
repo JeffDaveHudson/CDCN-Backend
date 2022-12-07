@@ -20,6 +20,7 @@ import math
 from myapi import serializers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from myapi.permissions import StaffAndUserPermission
+from myapi.recommendation import CF
 import pandas as pd
 
 class BookManage(APIView):
@@ -47,6 +48,43 @@ class BookManage(APIView):
         except Exception as e:
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request):
+        try:
+            data = request.data
+            new_book = models.Book.objects.create(
+                title=data["title"], photourl=data["photourl"])
+            new_book.save()
+            for genre in data["genres"]:
+                genre_obj = models.Genre.objects.get(id=genre["id"])
+                new_book.genre.add(genre_obj)
+
+            serializer = BookSerializer(new_book)
+            return Response({"status": "success", "data": serializer.data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"status": "error"}, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id=None):
+        item = get_object_or_404(models.Book, id=id)
+        item.delete()
+        return Response({"status": "success", "data": "Item Deleted"})
+
+    def patch(self, request, id=None):
+        try:
+            item = models.Book.objects.get(id=id)
+            item.title = request.data["title"]
+            item.photourl = request.data["photourl"]
+            item.save(update_fields=["title", "photourl"])
+
+            item.genre.clear()
+            for genre in request.data["genres"]:
+                genre_obj = models.Genre.objects.get(id=genre["id"])
+                item.genre.add(genre_obj)
+
+            serializer = BookSerializer(item)
+            return Response({"status": "success", "data": serializer.data})
+        except Exception as e:
+            return Response({"status": "error", "data": "error while updating"})
 
 
 class UserRegisterView(APIView):
@@ -114,3 +152,182 @@ class GenreManage(APIView):
             print(e)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+
+class Recommendation(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+
+    def get(self, request, user, *args, **kwargs):
+        data = pd.DataFrame(list(models.Rating.objects.all().values(
+            'user', 'book', 'rating').order_by('user', 'book')))
+        data = data.to_numpy()
+        rs = CF(data, 30, uuCF=1)
+        rs.fit()
+        list_item = rs.print_recommendation()
+
+        for item in list_item:
+            if item['_user'] == user:
+                list_book = item['_book']
+        result = []
+        for book_id in list_book:
+            queryset = models.Book.objects.get(id=book_id)
+            serializer = BookSerializer(queryset)
+            result.append(serializer.data)
+        return Response(result)
+
+class RatingManage(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+
+    def get(self, request, pk=None, format=None):
+        if pk:
+            rating_obj = models.Rating.objects.get(pk=pk)
+
+            serializer = RatingSerializer(rating_obj)
+        else:
+
+            queryset = models.Rating.objects.all()
+            serializer = RatingSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        data = request.data
+        serializer = RatingSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        item = get_object_or_404(models.Rating, pk=pk)
+        item.delete()
+        return Response({"status": "success", "data": "Item Deleted"})
+
+    def put(self, request, pk, format=None):
+        rating_obj = models.Rating.objects.get(pk=pk)
+        serializer = RatingSerializer(data=request.data, instance=rating_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, format=None):
+        rating_obj = models.Rating.objects.get(pk=pk)
+        serializer = RatingSerializer(
+            data=request.data, instance=rating_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AverageRating(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+
+    def get(self, request, *args, **kwargs):
+        obj = models.Rating.objects.filter(book=kwargs['book']).values(
+            'book').annotate(avg_rating=Avg('rating'), rating_count=Count('user'))
+        return Response(obj)
+
+class UserManage(APIView):
+    # permission_classes = [StaffAndUserPermission]
+    permission_classes = (AllowAny,)
+    serializer_class = UserSerializer
+
+    def get(self, request, pk=None, format=None):
+        if pk:
+            user_obj = models.User.objects.get(pk=pk)
+            serializer = UserSerializer(user_obj)
+        else:
+            queryset = models.User.objects.all()
+            serializer = UserSerializer(queryset, many=True)
+
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        data = request.data
+        serializer = UserSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request, pk, format=None):
+        user_obj = models.User.objects.get(pk=pk)
+        serializer = UserSerializer(data=request.data, instance=user_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, pk, format=None):
+        user_obj = models.User.objects.get(pk=pk)
+        serializer = UserSerializer(
+            data=request.data, instance=user_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+
+class RatingByUser(APIView):
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            queryset = models.Rating.objects.filter(user=kwargs['user'])
+            serializer = RatingSerializer(queryset, many=True)
+
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        except Exception:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class RatingByUser_Book(APIView):
+    # permission_classes = [IsAuthenticated]
+    permission_classes = (AllowAny,)
+    serializer_class = RatingSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            queryset = models.Rating.objects.filter(
+                user=kwargs['user'], book=kwargs['book'])
+            serializer = RatingSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        except Exception:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, user, format=None):
+        item = get_object_or_404(models.Rating, user=user)
+        item.delete()
+        return Response({"status": "success", "data": "Item Deleted"})
+
+    def put(self, request, user, format=None):
+        rating_obj = models.Rating.objects.get(user=user)
+        serializer = RatingSerializer(data=request.data, instance=rating_obj)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, user, book, format=None):
+        rating_obj = models.Rating.objects.get(user=user, book=book)
+        serializer = RatingSerializer(
+            data=request.data, instance=rating_obj, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"Message": "Data updated successfully !!"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
