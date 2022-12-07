@@ -27,6 +27,7 @@ urlpatterns = [
      # Rating theo user_id và book_id
     path('ratingbyuserbook/<int:user>/<int:book>',
          views.RatingByUser_Book.as_view()),
+    path('ratingbyuser/<int:user>', views.RatingByUser.as_view()),
          
     # Rating avg theo book_id
     path('ratingavg', views.AverageRating.as_view()),
